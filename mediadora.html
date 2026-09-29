@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mediadora 🐱</title>
+<style>
+  :root{
+    --bg:#211f26; --bg2:#2a2731; --card:#2e2b36; --card2:#38333f;
+    --text:#eee7f0; --text-dim:#b7aec2; --accent:#d9a5c4; --accent2:#a3c9a8;
+    --warn:#e0b070; --danger:#e08a8a; --border:#443f4f;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    font-size:18px; line-height:1.45; display:flex; flex-direction:column; min-height:100%;
+  }
+  #app{flex:1; display:flex; flex-direction:column; max-width:640px; margin:0 auto; width:100%;}
+  .center-screen{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:28px 20px;}
+  h1{font-size:1.6em; margin:0 0 6px; text-align:center;}
+  .sub{color:var(--text-dim); text-align:center; margin:0 0 26px; font-size:1em;}
+  .deco{font-size:2.6em; margin-bottom:6px;}
+  label{display:block; font-size:0.95em; color:var(--text-dim); margin:14px 0 6px;}
+  input[type=text],input[type=password]{
+    width:100%; padding:14px 16px; border-radius:16px; border:2px solid var(--border);
+    background:var(--card); color:var(--text); font-size:1.1em; outline:none;
+  }
+  input:focus{border-color:var(--accent);}
+  .btn{
+    width:100%; padding:15px 18px; border-radius:18px; border:none; margin-top:20px;
+    background:var(--accent); color:#2a1f27; font-weight:700; font-size:1.1em; cursor:pointer;
+  }
+  .btn:active{opacity:0.85;}
+  .btn.secondary{background:var(--card2); color:var(--text);}
+  .btn:disabled{opacity:0.5;}
+  .error-box{background:#3a2429; border:1px solid var(--danger); color:#f3c9c9; padding:12px 14px; border-radius:14px; margin-top:16px; font-size:0.95em;}
+  .code-hint{color:var(--text-dim); font-size:0.85em; margin-top:6px;}
+  header.roombar{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding:14px 16px calc(10px + env(safe-area-inset-top,0px));
+    background:var(--bg2); border-bottom:1px solid var(--border); position:sticky; top:0; z-index:5;
+  }
+  header.roombar .roomcode{font-size:0.85em; color:var(--text-dim);}
+  header.roombar .title{font-weight:700; font-size:1.05em;}
+  header.roombar button{background:none; border:1px solid var(--border); color:var(--text-dim); border-radius:12px; padding:7px 12px; font-size:0.85em;}
+  .status-banner{margin:12px 16px 0; padding:12px 16px; border-radius:16px; font-size:1em; text-align:center; font-weight:600;}
+  .status-turn{background:#33402f; color:#cdeecb; border:1px solid var(--accent2);}
+  .status-wait{background:#3a3444; color:var(--text-dim); border:1px solid var(--border);}
+  .status-paused{background:#40382a; color:var(--warn); border:1px solid var(--warn);}
+  #chat{flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:12px;}
+  .msg{max-width:88%; padding:12px 16px; border-radius:18px; font-size:1em; white-space:pre-wrap;}
+  .msg .who{font-size:0.78em; color:var(--text-dim); margin-bottom:4px; font-weight:600;}
+  .msg.ai{background:var(--card2); align-self:flex-start; border:1px solid var(--border);}
+  .msg.ai.analysis{background:#2c3a2e; border-color:var(--accent2);}
+  .msg.mine{background:#4a3a4a; align-self:flex-end; color:var(--text);}
+  .msg.theirs{background:var(--card); align-self:flex-start;}
+  .msg.system{background:#40382a; align-self:center; border:1px solid var(--warn); font-size:0.9em; text-align:center;}
+  #inputbar{padding:12px 16px calc(14px + env(safe-area-inset-bottom,0px)); border-top:1px solid var(--border); background:var(--bg2);}
+  #inputbar textarea{width:100%; min-height:80px; padding:14px; border-radius:16px; border:2px solid var(--border); background:var(--card); color:var(--text); font-size:1.05em; font-family:inherit; resize:vertical;}
+  .inputbar-row{display:flex; gap:10px; margin-top:10px; align-items:center;}
+  .inputbar-row .btn{margin-top:0;}
+  .pause-row{display:flex; justify-content:center; margin-top:10px;}
+  .pause-row button{background:none; border:none; color:var(--text-dim); font-size:0.85em; text-decoration:underline;}
+  #topicsPanel{position:fixed; inset:0; background:rgba(0,0,0,0.5); display:none; align-items:flex-end; z-index:10;}
+  #topicsPanel.open{display:flex;}
+  #topicsSheet{background:var(--bg2); width:100%; max-height:70vh; overflow-y:auto; border-radius:22px 22px 0 0; padding:18px 18px calc(18px + env(safe-area-inset-bottom,0px));}
+  #topicsSheet h2{margin:0 0 12px; font-size:1.2em;}
+  .topic-item{padding:10px 0; border-bottom:1px solid var(--border);}
+  .topic-item .d{color:var(--text-dim); font-size:0.8em;}
+  footer.disclaimer{text-align:center; color:var(--text-dim); font-size:0.72em; padding:10px 14px 14px; border-top:1px solid var(--border); background:var(--bg2);}
+  .spinner{display:inline-block; width:16px; height:16px; border:2px solid var(--text-dim); border-top-color:var(--accent); border-radius:50%; animation:spin 0.8s linear infinite; vertical-align:middle; margin-right:6px;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+</style>
+</head>
+<body>
+<div id="app"><div class="center-screen"><div class="spinner"></div>&nbsp;Cargando...</div></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+import {
+  getFirestore, doc, getDoc, updateDoc, onSnapshot, collection, addDoc,
+  query, orderBy, limit, runTransaction
+} from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDydapGnCj6d4DIxcCw-mNwoKERfLZH3ow",
+  authDomain: "nidito-0808.firebaseapp.com",
+  projectId: "nidito-0808",
+  storageBucket: "nidito-0808.firebasestorage.app",
+  messagingSenderId: "607827395461",
+  appId: "1:607827395461:web:5a8d0d0d2cb8be40cd7aec"
+};
+const fbApp = initializeApp(firebaseConfig);
+const db = getFirestore(fbApp);
+
+const GEMINI_MODEL = "gemini-2.5-flash";
+
+const app = document.getElementById('app');
+
+const DEVICE_ID_KEY = 'mediadora_device_id';
+const NAME_KEY = 'mediadora_name';
+const ROOM_KEY = 'mediadora_room';
+const GEMINI_KEY = 'mediadora_gemini_key';
+
+function uuid(){
+  if (crypto.randomUUID) return crypto.randomUUID();
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c=>{
+    const r = Math.random()*16|0, v = c==='x'?r:(r&0x3|0x8);
+    return v.toString(16);
+  });
+}
+function getDeviceId(){
+  let id = localStorage.getItem(DEVICE_ID_KEY);
+  if(!id){ id = uuid(); localStorage.setItem(DEVICE_ID_KEY, id); }
+  return id;
+}
+const deviceId = getDeviceId();
+
+let state = {
+  screen: 'loading',
+  name: localStorage.getItem(NAME_KEY) || '',
+  code: (localStorage.getItem(ROOM_KEY) || '').toUpperCase(),
+  geminiKey: localStorage.getItem(GEMINI_KEY) || '',
+  error: '',
+  room: null,
+  messages: [],
+  busy: false,
+  hostileWarning: null,
+  draft: '',
+  topicsOpen: false,
+};
+
+let unsubRoom = null, unsubMsgs = null;
+
+function esc(s){
+  const d = document.createElement('div');
+  d.textContent = s == null ? '' : String(s);
+  return d.innerHTML;
+}
+
+function render(){
+  if(state.screen === 'loading'){
+    app.innerHTML = '<div class="center-screen"><div class="spinner"></div>&nbsp;Cargando...</div>';
+    return;
+  }
+  if(state.screen === 'apikey'){ renderApiKey(); return; }
+  if(state.screen === 'login'){ renderLogin(); return; }
+  if(state.screen === 'room'){ renderRoom(); return; }
+}
+
+function renderApiKey(){
+  app.innerHTML = `
+    <div class="center-screen">
+      <div class="deco">🐱🔑</div>
+      <h1>Configurar la IA</h1>
+      <p class="sub">Pegá acá tu clave gratuita de Gemini (de aistudio.google.com). Se guarda solo en este celular.</p>
+      <div style="width:100%;max-width:360px;">
+        <label for="keyInput">Clave de API de Gemini</label>
+        <input type="password" id="keyInput" placeholder="AQ.xxxxxxxxxxxxxxxxxxxx" value="${esc(state.geminiKey)}">
+        ${state.error ? `<div class="error-box">${esc(state.error)}</div>` : ''}
+        <button class="btn" id="saveKeyBtn">Guardar y continuar 🌿</button>
+      </div>
+    </div>`;
+  document.getElementById('saveKeyBtn').addEventListener('click', ()=>{
+    const val = document.getElementById('keyInput').value.trim();
+    if(!val){ state.error = 'Pegá la clave para continuar.'; render(); return; }
+    state.geminiKey = val; state.error = '';
+    localStorage.setItem(GEMINI_KEY, val);
+    state.screen = 'login';
+    render();
+  });
+}
+
+function renderLogin(){
+  app.innerHTML = `
+    <div class="center-screen">
+      <div class="deco">🐱🌸</div>
+      <h1>Mediadora</h1>
+      <p class="sub">Un espacio tranquilo para hablar en pareja, con ayuda de una IA neutral.</p>
+      <div style="width:100%;max-width:360px;">
+        <label for="nameInput">Tu nombre</label>
+        <input type="text" id="nameInput" placeholder="Ej: Vale" value="${esc(state.name)}" maxlength="30">
+        <label for="codeInput">Código de la sala</label>
+        <input type="text" id="codeInput" placeholder="Ej: ABC123" value="${esc(state.code)}" maxlength="6" style="text-transform:uppercase;letter-spacing:2px;">
+        <div class="code-hint">6 caracteres. Si no existe, se crea una sala nueva. Compartí el mismo código con tu pareja.</div>
+        ${state.error ? `<div class="error-box">${esc(state.error)}</div>` : ''}
+        <button class="btn" id="enterBtn" ${state.busy?'disabled':''}>${state.busy?'Entrando...':'Entrar a la sala 🌿'}</button>
+        <button class="btn secondary" id="changeKeyBtn" style="margin-top:10px;">Cambiar clave de Gemini</button>
+      </div>
+    </div>`;
+  const nameInput = document.getElementById('nameInput');
+  const codeInput = document.getElementById('codeInput');
+  codeInput.addEventListener('input', ()=>{ codeInput.value = codeInput.value.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6); });
+  document.getElementById('enterBtn').addEventListener('click', ()=>{
+    const name = nameInput.value.trim();
+    const code = codeInput.value.trim().toUpperCase();
+    if(!name){ state.error = 'Escribí tu nombre.'; render(); return; }
+    if(code.length !== 6){ state.error = 'El código tiene que tener 6 caracteres.'; render(); return; }
+    state.name = name; state.code = code; state.error = '';
+    localStorage.setItem(NAME_KEY, name);
+    joinRoom();
+  });
+  document.getElementById('changeKeyBtn').addEventListener('click', ()=>{
+    state.screen = 'apikey'; state.error=''; render();
+  });
+}
+
+function myTurnInfo(){
+  const room = state.room;
+  if(!room) return null;
+  const parts = room.participants || [];
+  const other = parts.find(p=>p.id!==deviceId);
+  const otherName = other ? other.name : null;
+  if(room.status === 'paused'){
+    return {kind:'paused', text: '⏸️ Sesión en pausa. Cualquiera puede reanudarla cuando quieran.'};
+  }
+  if(parts.length < 2){
+    return {kind:'wait', text: `🌱 Esperando a que tu pareja entre con el código ${room.code}...`};
+  }
+  if(room.phase === 'context' || room.phase === 'generating_question'){
+    const ctx = room.contexts || {};
+    const mine = ctx[deviceId];
+    const theirs = other ? ctx[other.id] : undefined;
+    if(!mine) return {kind:'turn', text: '🐾 Es tu turno: contanos brevemente de qué querés hablar hoy.'};
+    if(!theirs) return {kind:'wait', text: `😺 Esperando a ${otherName}...`};
+    return {kind:'wait', text: '🐱 La mediadora está preparando la primera pregunta...'};
+  }
+  if(room.phase === 'answering'){
+    const resp = room.responses || {};
+    const mine = resp[deviceId];
+    const theirs = other ? resp[other.id] : undefined;
+    if(!mine) return {kind:'turn', text: '🐾 Es tu turno: contá tu versión con tranquilidad.'};
+    if(!theirs) return {kind:'wait', text: `😺 Esperando a ${otherName}...`};
+    return {kind:'wait', text: '🐱 La mediadora está leyendo a los dos...'};
+  }
+  if(room.phase === 'processing'){
+    return {kind:'wait', text: '🐱 La mediadora está pensando...'};
+  }
+  return {kind:'wait', text: '...'};
+}
+
+function renderRoom(){
+  const room = state.room;
+  const turn = myTurnInfo();
+  const parts = room ? (room.participants||[]) : [];
+  const other = parts.find(p=>p.id!==deviceId);
+
+  let bannerClass = 'status-wait';
+  if(turn){
+    if(turn.kind === 'turn') bannerClass = 'status-turn';
+    if(turn.kind === 'paused') bannerClass = 'status-paused';
+  }
+
+  const msgsHtml = state.messages.map(m=>{
+    let cls = 'msg ';
+    let who = '';
+    if(m.type === 'analysis'){ cls += 'ai analysis'; who = '🐱 Mediadora'; }
+    else if(m.sender === 'ai'){ cls += 'ai'; who = '🐱 Mediadora'; }
+    else if(m.type === 'system'){ cls += 'system'; who = ''; }
+    else if(m.senderId === deviceId){ cls += 'mine'; who = 'Vos'; }
+    else { cls += 'theirs'; who = m.name || 'Tu pareja'; }
+    return `<div class="${cls}">${who?`<div class="who">${esc(who)}</div>`:''}${esc(m.text)}</div>`;
+  }).join('');
+
+  const canType = room && room.status !== 'paused' && parts.length >= 2 &&
+    ((room.phase === 'context' && !(room.contexts||{})[deviceId]) ||
+     (room.phase === 'answering' && !(room.responses||{})[deviceId]));
+
+  let inputPrompt = '';
+  if(room && room.phase === 'context' && canType) inputPrompt = '¿De qué querés hablar hoy?';
+  if(room && room.phase === 'answering' && canType) inputPrompt = room.currentQuestion || 'Contá tu versión...';
+
+  let hostileHtml = '';
+  if(state.hostileWarning){
+    hostileHtml = `<div class="error-box">
+      🌿 Antes de enviarlo: ${esc(state.hostileWarning.motivo || 'el mensaje suena bastante fuerte para tu pareja.')}<br>
+      ¿Podrías reformularlo con más respeto? Editá el texto y volvé a intentar.
+    </div>`;
+  }
+
+  app.innerHTML = `
+    <header class="roombar">
+      <div>
+        <div class="title">🐱 Mediadora</div>
+        <div class="roomcode">Sala ${esc(room?room.code:state.code)}${other?` · con ${esc(other.name)}`:''}</div>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button id="topicsBtn">🌸 Temas</button>
+        <button id="logoutBtn">Salir</button>
+      </div>
+    </header>
+    ${turn ? `<div class="status-banner ${bannerClass}">${turn.text}</div>` : ''}
+    <div id="chat">${msgsHtml || '<div class="sub" style="margin-top:30px;">Todavía no hay mensajes en esta sala.</div>'}</div>
+    <div id="inputbar">
+      ${hostileHtml}
+      ${canType ? `
+        <label style="margin-top:0;">${esc(inputPrompt)}</label>
+        <textarea id="draftInput" placeholder="Escribí acá, con la tranquilidad que necesites...">${esc(state.draft)}</textarea>
+        <div class="inputbar-row">
+          <button class="btn" id="sendBtn" ${state.busy?'disabled':''}>${state.busy?'Enviando...':'Enviar'}</button>
+        </div>
+      ` : ''}
+      <div class="pause-row">
+        ${room && room.status !== 'paused'
+          ? '<button id="pauseBtn">⏸️ Pausar por hoy</button>'
+          : (room && room.status === 'paused' ? '<button id="resumeBtn">▶️ Reanudar sesión</button>' : '')}
+      </div>
+    </div>
+    <footer class="disclaimer">🐾 Esta app no reemplaza terapia de pareja ni asesoramiento profesional. Si la situación es grave o hay violencia, buscá ayuda profesional.</footer>
+    <div id="topicsPanel" class="${state.topicsOpen?'open':''}">
+      <div id="topicsSheet">
+        <h2>🌸 Temas hablados</h2>
+        ${(room && room.topics && room.topics.length) ? room.topics.slice().reverse().map(t=>`
+          <div class="topic-item"><div class="d">${esc(new Date(t.date).toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric'}))}</div>${esc(t.summary)}</div>
+        `).join('') : '<p class="sub">Todavía no hay temas registrados.</p>'}
+        <button class="btn secondary" id="closeTopics" style="margin-top:16px;">Cerrar</button>
+      </div>
+    </div>
+  `;
+
+  const chatEl = document.getElementById('chat');
+  if(chatEl) chatEl.scrollTop = chatEl.scrollHeight;
+
+  document.getElementById('topicsBtn')?.addEventListener('click', ()=>{ state.topicsOpen = true; render(); });
+  document.getElementById('closeTopics')?.addEventListener('click', ()=>{ state.topicsOpen = false; render(); });
+  document.getElementById('logoutBtn')?.addEventListener('click', logout);
+  document.getElementById('pauseBtn')?.addEventListener('click', ()=>setStatus('paused'));
+  document.getElementById('resumeBtn')?.addEventListener('click', ()=>setStatus('active'));
+
+  const draftInput = document.getElementById('draftInput');
+  if(draftInput) draftInput.addEventListener('input', ()=>{ state.draft = draftInput.value; });
+  document.getElementById('sendBtn')?.addEventListener('click', submitDraft);
+}
+
+async function setStatus(status){
+  if(!state.room) return;
+  try{ await updateDoc(doc(db,'rooms',state.room.code), {status}); }catch(e){}
+}
+
+function logout(){
+  if(unsubRoom) unsubRoom();
+  if(unsubMsgs) unsubMsgs();
+  unsubRoom = null; unsubMsgs = null;
+  localStorage.removeItem(ROOM_KEY);
+  state.room = null; state.messages = [];
+  state.screen = 'login';
+  render();
+}
+
+async function joinRoom(){
+  state.busy = true; state.error = ''; render();
+  try{
+    const ref = doc(db, 'rooms', state.code);
+    let full = false;
+    await runTransaction(db, async (tx)=>{
+      const snap = await tx.get(ref);
+      if(!snap.exists()){
+        tx.set(ref, {
+          code: state.code, createdAt: Date.now(),
+          participants: [{id: deviceId, name: state.name}],
+          status: 'active', phase: 'context',
+          contexts: {}, responses: {}, currentQuestion: '', topics: [],
+        });
+      } else {
+        const data = snap.data();
+        const parts = data.participants || [];
+        const already = parts.find(p=>p.id===deviceId);
+        if(already){
+          if(already.name !== state.name){
+            const updated = parts.map(p=>p.id===deviceId?{...p, name: state.name}:p);
+            tx.update(ref, {participants: updated});
+          }
+        } else if(parts.length < 2){
+          tx.update(ref, {participants: [...parts, {id: deviceId, name: state.name}]});
+        } else {
+          full = true;
+        }
+      }
+    });
+    if(full){
+      state.busy = false;
+      state.error = 'Esta sala ya tiene a dos personas y vos no sos ninguna de ellas. Pedile a tu pareja el código correcto, o creá una sala nueva con otro código.';
+      render();
+      return;
+    }
+    localStorage.setItem(ROOM_KEY, state.code);
+    state.busy = false;
+    state.screen = 'room';
+    render();
+    subscribeRoom();
+  }catch(e){
+    state.busy = false;
+    state.error = 'No se pudo entrar a la sala. Probá de nuevo en un momento.';
+    render();
+  }
+}
+
+function subscribeRoom(){
+  const ref = doc(db, 'rooms', state.code);
+  unsubRoom = onSnapshot(ref, snap=>{
+    if(!snap.exists()) return;
+    state.room = snap.data();
+    state.room.code = state.code;
+    maybeAdvance();
+    render();
+  });
+  const msgsQuery = query(collection(db,'rooms',state.code,'messages'), orderBy('ts','asc'), limit(500));
+  unsubMsgs = onSnapshot(msgsQuery, snap=>{
+    state.messages = snap.docs.map(d=>d.data());
+    render();
+  });
+}
+
+async function callGemini(prompt){
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${encodeURIComponent(state.geminiKey)}`;
+  const res = await fetch(url, {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({contents:[{role:'user', parts:[{text: prompt}]}]})
+  });
+  if(!res.ok){
+    const errText = await res.text().catch(()=> '');
+    throw new Error('gemini_error:'+res.status+':'+errText);
+  }
+  const data = await res.json();
+  const text = (data?.candidates?.[0]?.content?.parts||[]).map(p=>p.text||'').join('');
+  return (text||'').trim();
+}
+
+function parseJsonLoose(text){
+  try{
+    const cleaned = text.replace(/```json/gi,'').replace(/```/g,'').trim();
+    return JSON.parse(cleaned);
+  }catch(e){ return null; }
+}
+
+async function checkHostility(text){
+  try{
+    const raw = await callGemini(
+      'Analizá el siguiente mensaje que alguien va a enviarle a su pareja en una sesión de mediación de pareja. ' +
+      'Respondé SOLO con JSON de la forma {"hostil": true|false, "motivo": "breve explicación en español rioplatense si es hostil, si no cadena vacía"}. ' +
+      'Considerá hostil cualquier insulto, desprecio, sarcasmo humillante o ataque directo a la otra persona. ' +
+      'NO consideres hostil expresar enojo, tristeza o disconformidad de forma respetuosa, eso está permitido y es sano.\n\n' +
+      'Mensaje: ' + text
+    );
+    const parsed = parseJsonLoose(raw);
+    return parsed || {hostil:false, motivo:''};
+  }catch(e){
+    return {hostil:false, motivo:''};
+  }
+}
+
+async function submitDraft(){
+  const text = (state.draft || '').trim();
+  if(!text || state.busy) return;
+  state.busy = true; state.hostileWarning = null; render();
+  try{
+    const check = await checkHostility(text);
+    if(check && check.hostil){
+      state.hostileWarning = {motivo: check.motivo};
+      state.busy = false;
+      render();
+      return;
+    }
+    const room = state.room;
+    const ref = doc(db,'rooms',room.code);
+    if(room.phase === 'context'){
+      await addDoc(collection(ref,'messages'), {sender:'p', senderId: deviceId, name: state.name, text, type:'context', ts: Date.now()});
+      const contexts = {...(room.contexts||{}), [deviceId]: text};
+      await updateDoc(ref, {contexts});
+    } else if(room.phase === 'answering'){
+      await addDoc(collection(ref,'messages'), {sender:'p', senderId: deviceId, name: state.name, text, type:'answer', ts: Date.now()});
+      const responses = {...(room.responses||{}), [deviceId]: text};
+      await updateDoc(ref, {responses});
+    }
+    state.draft = '';
+    state.busy = false;
+    render();
+  }catch(e){
+    state.busy = false;
+    render();
+  }
+}
+
+let advancing = false;
+async function maybeAdvance(){
+  const room = state.room;
+  if(!room || advancing) return;
+  const parts = room.participants || [];
+  if(parts.length < 2) return;
+  if(room.status === 'paused') return;
+
+  const ref = doc(db,'rooms',room.code);
+
+  if(room.phase === 'context'){
+    const ctx = room.contexts || {};
+    if(ctx[parts[0].id] && ctx[parts[1].id]){
+      advancing = true;
+      let acquired = false;
+      try{
+        await runTransaction(db, async (tx)=>{
+          const snap = await tx.get(ref);
+          const d = snap.data();
+          const c = d.contexts||{};
+          if(d.phase === 'context' && c[parts[0].id] && c[parts[1].id]){
+            tx.update(ref, {phase:'generating_question'});
+            acquired = true;
+          }
+        });
+      }catch(e){}
+      if(acquired){
+        try{
+          const q = await callGemini(
+            'Sos una mediadora de pareja cálida, neutral y profesional, hablás en español rioplatense (voseo), de Argentina. ' +
+            'Dado el contexto que cada persona compartió sobre de qué quiere hablar hoy, generá UNA sola pregunta abierta y cálida, ' +
+            'enfocada en el tema real que trajeron, para arrancar la sesión de mediación. Respondé solo con la pregunta, sin comillas ni introducciones.\n\n' +
+            `${parts[0].name} quiere hablar de: "${ctx[parts[0].id]}"\n` +
+            `${parts[1].name} quiere hablar de: "${ctx[parts[1].id]}"`
+          );
+          const question = (q || '¿Cómo te gustaría que hablemos de esto hoy?').trim();
+          await addDoc(collection(ref,'messages'), {sender:'ai', text: question, type:'question', ts: Date.now()});
+          await updateDoc(ref, {currentQuestion: question, phase:'answering', responses:{}});
+        }catch(e){
+          await updateDoc(ref, {phase:'context'}).catch(()=>{});
+        }
+      }
+      advancing = false;
+    }
+    return;
+  }
+
+  if(room.phase === 'answering'){
+    const resp = room.responses || {};
+    if(resp[parts[0].id] && resp[parts[1].id]){
+      advancing = true;
+      let acquired = false;
+      try{
+        await runTransaction(db, async (tx)=>{
+          const snap = await tx.get(ref);
+          const d = snap.data();
+          const r = d.responses||{};
+          if(d.phase === 'answering' && r[parts[0].id] && r[parts[1].id]){
+            tx.update(ref, {phase:'processing'});
+            acquired = true;
+          }
+        });
+      }catch(e){}
+      if(acquired){
+        try{
+          const raw = await callGemini(
+            'Sos una mediadora de pareja profesional, cálida e imparcial, hablás en español rioplatense (voseo), de Argentina. ' +
+            'Se te da la pregunta que hiciste y las respuestas de cada integrante de la pareja. Tu tarea:\n' +
+            '1) Validar lo que sintió cada persona, nombrándola por su nombre, sin juzgar y sin tomar partido.\n' +
+            '2) Señalar UN punto en común o UN malentendido central entre las dos versiones.\n' +
+            '3) Terminar sugiriendo UNA sola pregunta nueva, abierta, para seguir profundizando.\n' +
+            'Respondé SOLO en JSON con este formato exacto: ' +
+            '{"analisis": "2 a 4 oraciones con los puntos 1 y 2", "siguiente_pregunta": "una sola oración", "resumen_tema": "resumen de 5 a 8 palabras para un índice de temas"}\n\n' +
+            `Pregunta: ${room.currentQuestion}\n` +
+            `${parts[0].name} respondió: "${resp[parts[0].id]}"\n` +
+            `${parts[1].name} respondió: "${resp[parts[1].id]}"`
+          );
+          const out = parseJsonLoose(raw) || {};
+          const analisis = out.analisis || 'Gracias por compartir los dos su versión.';
+          const siguiente = out.siguiente_pregunta || '¿Cómo les gustaría seguir a partir de esto?';
+          const resumen = out.resumen_tema || 'Conversación en curso';
+          await addDoc(collection(ref,'messages'), {sender:'ai', text: analisis, type:'analysis', ts: Date.now()});
+          await addDoc(collection(ref,'messages'), {sender:'ai', text: siguiente, type:'question', ts: Date.now()+1});
+          const topics = [...(room.topics||[]), {date: Date.now(), summary: resumen}];
+          await updateDoc(ref, {currentQuestion: siguiente, phase:'answering', responses:{}, topics});
+        }catch(e){
+          await updateDoc(ref, {phase:'answering'}).catch(()=>{});
+        }
+      }
+      advancing = false;
+    }
+    return;
+  }
+}
+
+function init(){
+  if(!state.geminiKey){
+    state.screen = 'apikey';
+    render();
+    return;
+  }
+  state.screen = 'login';
+  render();
+}
+
+init();
+</script>
+</body>
+</html>
